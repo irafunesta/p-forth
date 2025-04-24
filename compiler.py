@@ -5,13 +5,17 @@ import datetime
 import time
 import re
 from pathlib import Path
+from functools import partial
 
 debug = False
 return_stack = []
 jump_flag = False
-
+compile_flag = False
 
  #fix this
+
+def check_elements_on_stack(stack, size):
+    return len(stack) > size -1
 
 def add(stack, word_pointer):
     if len(stack) > 1:
@@ -35,7 +39,7 @@ def emit(stack, word_pointer):
 def print_stack(stack, word_pointer):
     print(stack)
 
-def do_branch(stack, word_pointer):
+def ex_loop(stack, word_pointer):
     print("do branch")
     global jump_flag
     jump_flag = True
@@ -66,14 +70,69 @@ def ex_if(stack, word_pointer):
     return -1
 
 def ex_else(stack, word_pointer):
-    #do nothing
-    pass
+    #if i reach an else, i need to skip 
+    #seek the end and jump there ?
+    global jump_flag
+    jump_flag = True
+    return 0
+
+def ex_comparison(stack, comparator):
+    if check_elements_on_stack(stack, 2) :
+        num1 = stack.pop()
+        num2 = stack.pop()
+        if num1 == None or num2 == None:
+            print("None error")
+            return -1
+        match comparator :            
+            case "<":
+                stack.append(1 if num1 < num2 else 0),
+            case ">":
+                stack.append(1 if num1 > num2 else 0),
+            case "<=":
+                stack.append(1 if num1 <= num2 else 0),
+            case ">=":
+                stack.append(1 if num1 >= num2 else 0),
+            case "==":
+                stack.append(1 if num1 == num2 else 0),
+            case "!=":
+                stack.append(1 if num1 != num2 else 0),
+            case _:
+                print("Error")
+        
+        return 0
+    else:
+        return -1
+
+def ex_lt(stack, word_pointer):
+    return ex_comparison(stack, '<')
+
+def ex_gt(stack, word_pointer):
+    return ex_comparison(stack, '>')
+
+def ex_lte(stack, word_pointer):
+    return ex_comparison(stack, '<=')
+
+def ex_gte(stack, word_pointer):
+    return ex_comparison(stack, '>=')
+
+def ex_e(stack, word_pointer):
+   return ex_comparison(stack, '==')
+
+def ex_nt(stack, word_pointer):
+    return ex_comparison(stack, '!=')
 
 words_dictionary = { "+":add, ".":emit, ".s":print_stack, 
-    "branch":do_branch,
+    "loop":ex_loop,
     "do":save_pointer,
     "if":ex_if,
     "else":ex_else,
+    "<":ex_lt,
+    ">":ex_gt,
+    "<=": ex_lte,
+    ">=": ex_gte,
+    "==": ex_e,
+    "!=": ex_nt,
+    
 }
 
 def execute_word(stack, word, word_pointer):
@@ -134,7 +193,7 @@ def seek(words, word, word_pointer):
 #     return result
 
 def interpreter(filename, outputfile, table_name, split, separator) :
-    
+    global jump_flag
     now = datetime.datetime.now()
     format_date = now.strftime('%Y-%m-%d_%H-%M-%S')
 
@@ -174,21 +233,30 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                 #do the seek here ?
                 if word == "if":
                     #seek and execute else
-                    jump_index = seek(words, 'else', word_pointer)
+                    jump_index = seek(words, "else", word_pointer)
                     if jump_index > -1:
                         return_stack.append(jump_index)
-
+                        # words.remove("else")
+                    else:
+                        text_result = "Error no else found"
+                        run = False
+                
+                if word == "else":
+                    jump_index = len(words)
+                    return_stack.append(jump_index)
 
                 error = execute_word(integer_stack, word, word_pointer)
-                print("stack :",integer_stack)
-                print("return stack :",return_stack)
-                print("jump_flag :", jump_flag)
+                if debug:
+                    print("stack :",integer_stack)
+                    print("return stack :",return_stack)
+                    print("jump_flag :", jump_flag)
                 if error == -1 :
                     run = False
                     text_result = ""
                 else:
                     if jump_flag and len(return_stack) > 0 :
                         word_pointer = return_stack.pop()
+                        jump_flag = False
                     else:
                         word_pointer += 1
             else:
