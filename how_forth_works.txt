@@ -1,0 +1,39 @@
+dictionary is a linked list
+Link | name | flags | implementation | NEXT
+link -> pointer to the previous entry in the dictionary
+name -> name of the word
+flags -> various flags
+implementation -> list of pointer to other function or integrated operation that compose the word implementation
+NEXT -> specific word that make the program move to the next word
+
+each definition starts with DOCOL, or a codname that start the chain, by setting the isp pointer
+
+so we need a stack
+a pointer to the top of the stack
+
+the dictionary is a linked list
+we have a pointer to the latest entry, when we declare a word, we add it to the end
+the first value of the word entry, is the pointer to the latest entry
+
+when we compile (add a new word) the implementation is a pointer to the start of that word.
+each entry at the end will have NEXT
+
+NEXT
+    restore the isp
+
+DOCOL
+    push the current isp to the return stack
+    call next instruction
+
+eg.
+
+QUADRUPLE 
+    DOCOL
+    DOUBLE -------+-> codname -> DOCOL
+                  |   DUP   ----------> codname -> DOCOL NATIVE NEXT
+                  |   NEXT
+    DOUBLE -------+
+    NEXT
+
+the push of the isp on the return stack is at the start of the function, not at the end
+so i save where i was , not where i want to go, and with next i simply go back
