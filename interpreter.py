@@ -180,7 +180,7 @@ def get_next_word(words, index):
         return None
     return words[index]
 
-def seek(words, word, word_pointer):
+def seek(words, word, word_pointer = 0):
     try:
         return words.index(word, word_pointer)
     except ValueError:
@@ -196,6 +196,8 @@ def execute(instruction):
                 execute(instruction)
         elif instruction["f"] != None:
             instruction["f"]()
+        elif instruction["lit"] != None:
+            integer_stack.append(instruction["lit"])
 
 def interpret(word):
     code = None
@@ -223,6 +225,27 @@ def interpret(word):
             return "Error"
     return "Ok"
 
+def search_word(word):
+    link = latest
+
+    while link != None:
+        dict_entry = linked_dict[link]
+        # print(dict_entry)
+        if dict_entry == None:
+            return f"{word} , ?"
+
+        if dict_entry["name"] == word:
+            return dict_entry, link
+        else:
+            link = dict_entry["link"]
+
+def isNumber(word):
+    try: 
+        number = int(word)
+        return True
+    except ValueError:
+        return False
+
 def interpreter(filename, outputfile, table_name, split, separator) :
     global jump_flag
     global isp
@@ -236,7 +259,8 @@ def interpreter(filename, outputfile, table_name, split, separator) :
     # outputName = f'{outputfile}'
     # in_file = open(filename, 'r')
     
-    current_program = [] # for now i use words
+    compilation_prog = []
+    func_name = None
 
     end = False
     while not end:
@@ -255,29 +279,43 @@ def interpreter(filename, outputfile, table_name, split, separator) :
         for word in words:
             if compile_flag :
                 #consume and create an entry in the dict
-                #no numbers
-                try: 
-                    number = int(word)
-                    compile_flag = False
-                    text_result = f"error number as label, {word}"
+                end_compile = seek(words,";")
+                # print("end_compile:", end_compile)
+
+                if end_compile < 0:
+                    text_result = f"compilation error ; not found"
                     break
-                except ValueError:
-                    seek_w = None
-                    to_compile = []
-                    i = 2
-                    while seek_w != ";":
-                        if i > len(words):
-                            text_result = f"error no end of declaration"
-                            break
-                        to_compile.append(words[i])
-                        i += 1 
-                        seek_w = words[i]
-                    print("to_compile:", to_compile)
+                
+                to_compile = words[1:end_compile]
+                print("to_compile:", to_compile)
+
+                #no numbers
+                function_name = to_compile[0]
+                print("function_name:", function_name)
+
+                if isNumber(function_name):
+                    compile_flag = False
+                    text_result = f"error number as label, {function_name}"
+                    break
+                
+                compiled = []
+                for code in to_compile[1:] :
+                    print("code:", code)
+                    link = None
+                    func_call = None
+                    lit = None
+                    if isNumber(code):
+                        lit = int(code)
+                    else:
+                        _, link = search_word(code)
                     
-                    # add_dict_entry(word, 0, [make_instruction(None, emit)])
-                    # entry_dict = {
-                    #     "name"
-                    # }
+                    compiled.append(make_instruction(link, func_call, lit))
+                
+                add_dict_entry(function_name, 0, compiled)
+                print("last dictionary entry:", linked_dict[latest])
+                compile_flag = False
+                text_result = "Ok"
+                break
             else:
                 try:
                     number = int(word)
@@ -309,10 +347,11 @@ def add_dict_entry(name, flags, code):
     linked_dict.append(tmp)
     latest = len(linked_dict) - 1
 
-def make_instruction(link, func_call):
+def make_instruction(link, func_call, lit = None):
     return {
         "ptr" : link,
-        "f" : func_call
+        "f" : func_call,
+        "lit": lit
     }
 
 def main(argv):
