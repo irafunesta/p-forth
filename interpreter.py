@@ -199,7 +199,7 @@ def execute(instruction):
         elif instruction["lit"] != None:
             integer_stack.append(instruction["lit"])
 
-def interpret(word):
+def interpret(word): # return code, message
     code = None
     link = latest
 
@@ -207,7 +207,7 @@ def interpret(word):
         dict_entry = linked_dict[link]
         # print(dict_entry)
         if dict_entry == None:
-            return f"{word} , ?"
+            return -1, f"{word} , ?"
 
         if dict_entry["name"] == word:
             code = dict_entry["code"]
@@ -216,14 +216,14 @@ def interpret(word):
             link = dict_entry["link"]
     
     if code == None:
-        return f"{word} ?"
+        return -1, f"{word} code not found"
     
     #actual execution
     for instruction in code:
         error = execute(instruction)
         if error == -1:
-            return "Error"
-    return "Ok"
+            return -1, "Error"
+    return 0, "Ok"
 
 def search_word(word):
     link = latest
@@ -232,12 +232,10 @@ def search_word(word):
         dict_entry = linked_dict[link]
         # print(dict_entry)
         if dict_entry == None:
-            return f"{word} , ?"
-
+            return None, -1
         if dict_entry["name"] == word:
             return dict_entry, link
-        else:
-            link = dict_entry["link"]
+        link = dict_entry["link"]
 
 def isNumber(word):
     try: 
@@ -306,8 +304,11 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                     lit = None
                     if isNumber(code):
                         lit = int(code)
-                    else:
+                    else:                        
                         _, link = search_word(code)
+                        if link == -1:
+                            text_result = f"Error function not found"
+                            break
                     
                     compiled.append(make_instruction(link, func_call, lit))
                 
@@ -315,8 +316,9 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                 print("last dictionary entry:", linked_dict[latest])
                 compile_flag = False
                 text_result = "Ok"
-                break
+                break #consume other words
             else:
+                #change this to use isNumber
                 try:
                     number = int(word)
                     integer_stack.append(number)
@@ -328,7 +330,9 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                             compile_flag = True # maybe this will be possible to be moved in the dictionary
                             text_result = "Ok"
                         case _:
-                            text_result = interpret(word)
+                            code, text_result = interpret(word)
+                            if code == -1:
+                                break
         print(text_result)
         
     print(f'END ------------------------ ')
