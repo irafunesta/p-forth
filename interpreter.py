@@ -225,17 +225,19 @@ def interpret(word): # return code, message
             return -1, "Error"
     return 0, "Ok"
 
-def search_word(word):
+def search_word(word): #return the link of a word that is present
     link = latest
 
     while link != None:
         dict_entry = linked_dict[link]
         # print(dict_entry)
-        if dict_entry == None:
-            return None, -1
+        if dict_entry["link"] == None: #dict_entry can't be None, but the link yes reached the end of the dictionary
+            return -1
         if dict_entry["name"] == word:
-            return dict_entry, link
+            return link
         link = dict_entry["link"]
+    
+    # return -1 #moved all the list and not foud
 
 def isNumber(word):
     try: 
@@ -305,12 +307,17 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                     if isNumber(code):
                         lit = int(code)
                     else:                        
-                        _, link = search_word(code)
+                        link = search_word(code)
+                        print("code:", code, "link:", link)
                         if link == -1:
-                            text_result = f"Error function not found"
-                            break
+                            text_result = f"Error word not found"
+                            break #this will be a good time where the label on the loops is good
                     
                     compiled.append(make_instruction(link, func_call, lit))
+                
+                if link == -1:
+                    text_result = f"Error word {code} not found"
+                    break
                 
                 add_dict_entry(function_name, 0, compiled)
                 print("last dictionary entry:", linked_dict[latest])
