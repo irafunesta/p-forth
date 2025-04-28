@@ -30,16 +30,9 @@ entry_example = {
     "f": None
 }
 
-# def docol():
-#     global return_stack
-#     global isp
-#     return_stack.append(isp)
-#     isp = 0
-
-# def nextf():
-#     global isp
-#     last_instruction = return_stack.pop()
-#     isp = last_instruction
+def enter_compilation():
+    global compile_flag
+    compile_flag = True    
 
 def check_elements_on_stack(stack, size):
     return len(stack) > size -1
@@ -149,37 +142,6 @@ def ex_e():
 def ex_nt():
     return ex_comparison(integer_stack, '!=')
 
-#this needs to be a linked list, and a chain of calls
-words_dictionary = {
-    "loop":ex_loop,
-    "do":save_pointer,
-    "if":ex_if,
-    "else":ex_else,
-}
-
-
-
-def execute_word(stack, word, word_pointer):
-    # print("execute word:", word)
-    try:
-        number = int(word)
-        stack.append(number)
-    except ValueError:
-        code = words_dictionary.get(word)
-        if code == None:
-            print(word , " ?")
-            return -1
-        
-        return code(stack, word_pointer)
-    return 0
-
-def get_next_word(words, index):
-    # print("words:", words)
-    # print("index:", index)
-    if index > len(words) - 1:
-        return None
-    return words[index]
-
 def seek(words, word, word_pointer = 0):
     try:
         return words.index(word, word_pointer)
@@ -280,18 +242,15 @@ def interpreter(filename, outputfile, table_name, split, separator) :
             if compile_flag :
                 #consume and create an entry in the dict
                 end_compile = seek(words,";")
-                # print("end_compile:", end_compile)
 
                 if end_compile < 0:
                     text_result = f"compilation error ; not found"
                     break
                 
                 to_compile = words[1:end_compile]
-                print("to_compile:", to_compile)
 
                 #no numbers
                 function_name = to_compile[0]
-                print("function_name:", function_name)
 
                 if isNumber(function_name):
                     compile_flag = False
@@ -300,7 +259,7 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                 
                 compiled = []
                 for code in to_compile[1:] :
-                    print("code:", code)
+                    # print("code:", code)
                     link = None
                     func_call = None
                     lit = None
@@ -308,7 +267,7 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                         lit = int(code)
                     else:                        
                         link = search_word(code)
-                        print("code:", code, "link:", link)
+                        # print("code:", code, "link:", link)
                         if link == -1:
                             text_result = f"Error word not found"
                             break #this will be a good time where the label on the loops is good
@@ -323,23 +282,15 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                 print("last dictionary entry:", linked_dict[latest])
                 compile_flag = False
                 text_result = "Ok"
-                break #consume other words
-            else:
-                #change this to use isNumber
-                try:
+                break 
+            else:                
+                if isNumber(word):
                     number = int(word)
                     integer_stack.append(number)
-                except ValueError:
-                    #in case is a : , go in compilation mode
-                    match word:
-                        case ":":
-                            print("doing comipilation")
-                            compile_flag = True # maybe this will be possible to be moved in the dictionary
-                            text_result = "Ok"
-                        case _:
-                            code, text_result = interpret(word)
-                            if code == -1:
-                                break
+                else:
+                    code, text_result = interpret(word)
+                    if code == -1:
+                        break
         print(text_result)
         
     print(f'END ------------------------ ')
@@ -423,6 +374,8 @@ def main(argv):
     add_dict_entry(">=", 0, [make_instruction(None, ex_gte)])
     add_dict_entry("==", 0, [make_instruction(None, ex_e)])
     add_dict_entry("!=", 0, [make_instruction(None, ex_nt)])
+
+    add_dict_entry(":", 0, [make_instruction(None, enter_compilation)])
 
     interpreter(inputfile, outputfile, table_name, split, separator)
 
