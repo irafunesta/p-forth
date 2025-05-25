@@ -11,6 +11,10 @@ debug = False
 integer_stack = []
 jump_flag = False
 compile_flag = False
+top_of_stack = 0 #maybe
+word_pointer = 0
+skip_stack = []
+skip_top = 0
 
 isp = 0
 
@@ -32,7 +36,7 @@ entry_example = {
 
 def enter_compilation():
     global compile_flag
-    compile_flag = True    
+    compile_flag = True
 
 def check_elements_on_stack(stack, size):
     return len(stack) > size -1
@@ -137,10 +141,147 @@ def ex_gte():
     return ex_comparison(integer_stack, '>=')
 
 def ex_e():
-   return ex_comparison(integer_stack, '==')
+    return ex_comparison(integer_stack, '==')
+
+def ex_eq_top():
+    #top of stack is equal to 0
+    if len(integer_stack) > 0:
+        num1 = integer_stack.pop()
+        integer_stack.append(1 if num1 == 0 else 0),
+        return 0
+    return -1
 
 def ex_nt():
     return ex_comparison(integer_stack, '!=')
+
+def drop():
+    if len(integer_stack) > 0:
+        integer_stack.pop()
+        return 0
+    return -1
+
+def swap():
+    if len(integer_stack) > 1:
+        num1 = integer_stack.pop()
+        num2 = integer_stack.pop()
+        integer_stack.append(num1)
+        integer_stack.append(num2)
+        return 0
+    return -1
+
+def dup():
+    if len(integer_stack) > 0:
+        num1 = integer_stack.pop()
+        integer_stack.append(num1)
+        integer_stack.append(num1)
+        return 0
+    return -1
+
+def over(): # 1 2 3 -> 1 2 3 2
+    if len(integer_stack) > 1:
+        num1 = integer_stack[len(integer_stack)-2]
+        integer_stack.append(num1)
+        return 0
+    return -1
+
+def rot(): # ( n1 n2 n3 — n2 n3 n1 )
+    if len(integer_stack) > 2:
+        num1 = integer_stack.pop() #3
+        num2 = integer_stack.pop() #2
+        num3 = integer_stack.pop() #1
+        integer_stack.append(num2)
+        integer_stack.append(num1)
+        integer_stack.append(num3)
+        return 0
+    return -1
+
+def rotl(): # ( a b c ) to ( c a b )
+    if len(integer_stack) > 1:
+        num1 = integer_stack.pop() #c
+        num2 = integer_stack.pop() #b
+        num3 = integer_stack.pop() #a
+        integer_stack.append(num1)
+        integer_stack.append(num3)
+        integer_stack.append(num2)
+        return 0
+    return -1
+
+def increment(value):
+    if len(integer_stack) > 0:
+        integer_stack[len(integer_stack)-1] += value
+        return 0
+    return -1
+
+def decrement(value):
+    if len(integer_stack) > 0:
+        integer_stack[len(integer_stack)-1] -= value
+        return 0
+    return -1
+
+def incl():
+    increment(1)
+
+def incl4():
+    increment(4)
+
+def decl():
+    decrement(1)
+
+def decl4():
+    decrement(4)
+
+def subtract():
+    if len(integer_stack) > 1:
+        num1 = integer_stack.pop()
+        num2 = integer_stack.pop()
+        integer_stack.append(num1-num2)
+        return 0
+    return -1
+
+def mul():
+    if len(integer_stack) > 1:
+        num1 = integer_stack.pop()
+        num2 = integer_stack.pop()
+        integer_stack.append(num1*num2)
+        return 0
+    return -1
+
+def mod_primitive():
+    if len(integer_stack) > 1:
+        num1 = integer_stack.pop() #3
+        num2 = integer_stack.pop() #5
+        quot_rem = divmod(num2, num1)
+        integer_stack.append(quot_rem[1])
+        integer_stack.append(quot_rem[0])
+        return 0
+    return -1
+
+def branch(): #always jump to the next value on top of stack
+
+    #get the value to change from the stack, last pointed
+    global skip_top
+    global skip_stack
+
+    
+    if len(integer_stack) > 0:
+        jump_len = integer_stack.pop()
+        skip_stack[skip_top - 1] += jump_len
+        return 0
+    return -1
+
+def cond_branch(): #if top of stack is 1, jump to the next value on top of stack
+    global skip_top
+    global skip_stack
+
+    if len(integer_stack) > 1:
+        jump_len = integer_stack.pop()
+        cond = integer_stack.pop()
+        if cond == 1:
+            skip_stack[skip_top - 1] += jump_len #i want to skip the prev stack execution
+        return 0
+    return -1
+
+# ------------------------------------------- END WORDS ---------------------------------------------------
 
 def seek(words, word, word_pointer = 0):
     try:
@@ -149,21 +290,43 @@ def seek(words, word, word_pointer = 0):
         return -1
 
 def execute(instruction):
+    #maybe i can use a local (on stack) skip counter
+    #we do not return an error here, so how do we fails
+    global skip_top
+    global skip_stack
+    
+    # skip_top += 1
+    # skip_stack[skip_top] = 0
+    
     if instruction != None:
         func_to_call = None
         dict_index = instruction["ptr"]
         if dict_index != None:
             dict_entry = linked_dict[dict_index]
-            for instruction in dict_entry["code"]:
+
+            word_pointer = 0 # skip_stack[skip_top] #alias for top of call stack
+            while word_pointer < len(dict_entry["code"]):
+                instruction = dict_entry["code"][word_pointer]
                 execute(instruction)
+                word_pointer += 1
+
         elif instruction["f"] != None:
             instruction["f"]()
         elif instruction["lit"] != None:
             integer_stack.append(instruction["lit"])
+    
+    # skip_top -= 1
 
 def interpret(word): # return code, message
     code = None
     link = latest
+
+    global skip_top
+    global skip_stack
+    
+    skip_top += 1
+    skip_stack[skip_top] = 0
+
 
     while link != None:
         dict_entry = linked_dict[link]
@@ -178,13 +341,24 @@ def interpret(word): # return code, message
             link = dict_entry["link"]
     
     if code == None:
+        skip_top -= 1
         return -1, f"{word} code not found"
     
-    #actual execution
-    for instruction in code:
+
+
+    #actual execution, we need a deeper pointer even here
+    #if we use the skip_top stack as a instruction pointer, we should archive it at all levels
+    word_pointer = skip_stack[skip_top]
+
+    while word_pointer < len(code):
+        instruction = code[word_pointer]
         error = execute(instruction)
         if error == -1:
+            skip_top -= 1
             return -1, "Error"
+        skip_stack[skip_top] += 1
+        word_pointer = skip_stack[skip_top]
+    skip_top -= 1
     return 0, "Ok"
 
 def search_word(word): #return the link of a word that is present
@@ -212,6 +386,12 @@ def interpreter(filename, outputfile, table_name, split, separator) :
     global jump_flag
     global isp
     global compile_flag
+    # global word_pointer
+    global skip_top
+    global skip_stack
+
+    for i in range(0, 100):
+        skip_stack.append(0)
 
     now = datetime.datetime.now()
     format_date = now.strftime('%Y-%m-%d_%H-%M-%S')
@@ -236,9 +416,17 @@ def interpreter(filename, outputfile, table_name, split, separator) :
         print(words)
 
         #execution one word at a time
+        #can i just expand all the code and have it in a single list ?
+
         # run = True
         text_result = "Ok"
-        for word in words:
+        
+        skip_top = 0
+        skip_stack[skip_top] = 0
+        word_pointer = skip_stack[skip_top]
+
+        while word_pointer < len(words):
+        # for word_pointer in range(0, len(words)):
             if compile_flag :
                 #consume and create an entry in the dict
                 end_compile = seek(words,";")
@@ -258,14 +446,38 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                     break
                 
                 compiled = []
-                for code in to_compile[1:] :
+                for i, code in enumerate(to_compile[1:]) :
                     # print("code:", code)
                     link = None
                     func_call = None
                     lit = None
                     if isNumber(code):
                         lit = int(code)
-                    else:                        
+                    elif code == "if":
+                        #seek to the else then -> [cond n ?branch]
+                        relative_jump = seek(to_compile, "else", 0)
+                        if relative_jump == -1:
+                            text_result = f"Error misisng else"
+                            break #this will be a good time where the label on the loops is good
+                        compiled.append(make_instruction(None, None, relative_jump - i))
+                        link = search_word("?branch")
+                        compiled.append(make_instruction(link, None, None))
+                        continue
+                    elif code == "else":
+                        #seek to the then -> [n branch]
+                        relative_jump = seek(to_compile, "then", 0)
+                        if relative_jump == -1:
+                            text_result = f"Error misisng then"
+                            break #this will be a good time where the label on the loops is good
+                        compiled.append(make_instruction(None, None, relative_jump - i))
+                        link = search_word("branch")
+                        compiled.append(make_instruction(link, None, None))
+                        continue
+                    elif code == "then":
+                        #skip
+                        link = 99
+                        continue
+                    else:
                         link = search_word(code)
                         # print("code:", code, "link:", link)
                         if link == -1:
@@ -283,7 +495,10 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                 compile_flag = False
                 text_result = "Ok"
                 break 
-            else:                
+            else:
+                print("word_pointer:",word_pointer)
+                word = words[word_pointer]
+                print("word:",word)
                 if isNumber(word):
                     number = int(word)
                     integer_stack.append(number)
@@ -291,10 +506,14 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                     code, text_result = interpret(word)
                     if code == -1:
                         break
+            
+            skip_stack[skip_top] += 1
+            word_pointer = skip_stack[skip_top]
+            
+            print("next word, pointer:", word_pointer)
         print(text_result)
         
     print(f'END ------------------------ ')
-
 
 def add_dict_entry(name, flags, code):
     global latest
@@ -374,8 +593,25 @@ def main(argv):
     add_dict_entry(">=", 0, [make_instruction(None, ex_gte)])
     add_dict_entry("==", 0, [make_instruction(None, ex_e)])
     add_dict_entry("!=", 0, [make_instruction(None, ex_nt)])
+    add_dict_entry("0=", 0, [make_instruction(None, ex_eq_top)])
+
 
     add_dict_entry(":", 0, [make_instruction(None, enter_compilation)])
+    add_dict_entry("Drop", 0, [make_instruction(None, drop)])
+    add_dict_entry("Swap", 0, [make_instruction(None, swap)])
+    add_dict_entry("Over", 0, [make_instruction(None, over)])
+    add_dict_entry("Rot", 0, [make_instruction(None, rot)])
+    add_dict_entry("-Rot", 0, [make_instruction(None, rotl)])
+    add_dict_entry("1+", 0, [make_instruction(None, incl)])
+    add_dict_entry("1-", 0, [make_instruction(None, decl)])
+    add_dict_entry("4+", 0, [make_instruction(None, incl4)])
+    add_dict_entry("4-", 0, [make_instruction(None, decl4)])
+    add_dict_entry("-", 0, [make_instruction(None, subtract)])
+    add_dict_entry("*", 0, [make_instruction(None, mul)])
+    add_dict_entry("/Mod", 0, [make_instruction(None, mod_primitive)]) #(5 3 - 2 1)
+    add_dict_entry("branch", 0, [make_instruction(None, branch)])
+    add_dict_entry("?branch", 0, [make_instruction(None, cond_branch)])
+    
 
     interpreter(inputfile, outputfile, table_name, split, separator)
 

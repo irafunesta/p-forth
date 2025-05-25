@@ -37,3 +37,37 @@ QUADRUPLE
 
 the push of the isp on the return stack is at the start of the function, not at the end
 so i save where i was , not where i want to go, and with next i simply go back
+
+IF and branching
+0 1           2 3  4  5  6 7    8  9 10   11
+: is-it-zero? 0 0= if 33 . else 44 . then ;
+                  
+                if -> cond jump, can i use the jump to set a global var to jump, then skip the words in the middle
+                if -> jump_num swap ?branch 33 . 
+
+                s -> 1 7 10 rot 
+                s -> 7 10 1 ?branch
+
+                if = cond + jump to else or then
+                else = jump to then (never execute it)
+
+{'link': 24, 'name': 'is-zero', 'flags': 0, 'code': [
+    {'ptr': 9, 'f': None, 'lit': None},     -> 0=
+    {'ptr': None, 'f': None, 'lit': 4},     -> relative jump 4
+    {'ptr': 24, 'f': None, 'lit': None},    -> ?branch
+    {'ptr': None, 'f': None, 'lit': 22},    -> 22
+    {'ptr': None, 'f': None, 'lit': 6},     -> 6
+    {'ptr': 23, 'f': None, 'lit': None},    -> branch
+    {'ptr': None, 'f': None, 'lit': 33}]}   -> 33
+
+: is-zero 0= if 22 else 33 then ;
+
+{'link': 24, 'name': 'is-zero', 'flags': 0, 'code': [
+    {'ptr': 9, 'f': None, 'lit': None}, 
+    {'ptr': None, 'f': None, 'lit': 3}, 
+    {'ptr': 24, 'f': None, 'lit': None}, 
+    {'ptr': None, 'f': None, 'lit': 22}, 
+    {'ptr': None, 'f': None, 'lit': 3}, 
+    {'ptr': 23, 'f': None, 'lit': None}, 
+    {'ptr': None, 'f': None, 'lit': 33}]}
+  
