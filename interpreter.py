@@ -11,12 +11,12 @@ debug = False
 integer_stack = []
 jump_flag = False
 compile_flag = False
-top_of_stack = 0 #maybe
-word_pointer = 0
+# top_of_stack = 0 #maybe
+# word_pointer = 0
 skip_stack = []
 skip_top = 0
 
-isp = 0
+# isp = 0
 
 latest = None
 linked_dict = [] #each entry will be a dict
@@ -64,42 +64,42 @@ def emit():
 def print_stack():
     print(integer_stack)
 
-def ex_loop(stack, word_pointer):
-    print("do branch")
-    global jump_flag
-    jump_flag = True
-    print("jump_flag :", jump_flag)
-    return 0
+# def ex_loop(stack, word_pointer):
+#     print("do branch")
+#     global jump_flag
+#     jump_flag = True
+#     print("jump_flag :", jump_flag)
+#     return 0
 
-def cond_branch(stack, word_pointer):
-    print("do cond branch")
-    global jump_flag
-    if len(stack) > 0:
-        cond = stack.pop()
-        if cond == 1:
-            jump_flag = True
-        return 0
-    return -1
+# def cond_branch(stack, word_pointer):
+#     print("do cond branch")
+#     global jump_flag
+#     if len(stack) > 0:
+#         cond = stack.pop()
+#         if cond == 1:
+#             jump_flag = True
+#         return 0
+#     return -1
 
-def save_pointer(stack, word_pointer):
-    return_stack.append(word_pointer)
-    return 0
+# def save_pointer(stack, word_pointer):
+#     return_stack.append(word_pointer)
+#     return 0
 
-def ex_if(stack, word_pointer):
-    global jump_flag
-    if len(stack) > 0:
-        condition = stack.pop()
-        if condition != 1:
-            jump_flag = True
-        return 0
-    return -1
+# def ex_if(stack, word_pointer):
+#     global jump_flag
+#     if len(stack) > 0:
+#         condition = stack.pop()
+#         if condition != 1:
+#             jump_flag = True
+#         return 0
+#     return -1
 
-def ex_else(stack, word_pointer):
-    #if i reach an else, i need to skip 
-    #seek the end and jump there ?
-    global jump_flag
-    jump_flag = True
-    return 0
+# def ex_else(stack, word_pointer):
+#     #if i reach an else, i need to skip 
+#     #seek the end and jump there ?
+#     global jump_flag
+#     jump_flag = True
+#     return 0
 
 def ex_comparison(stack, comparator):
     if check_elements_on_stack(stack, 2) :
@@ -294,28 +294,31 @@ def execute(instruction):
     #we do not return an error here, so how do we fails
     global skip_top
     global skip_stack
-    
-    # skip_top += 1
-    # skip_stack[skip_top] = 0
-    
+
     if instruction != None:
         func_to_call = None
         dict_index = instruction["ptr"]
         if dict_index != None:
+
+            skip_top += 1
+            skip_stack[skip_top] = 0
+
             dict_entry = linked_dict[dict_index]
 
-            word_pointer = 0 # skip_stack[skip_top] #alias for top of call stack
+            word_pointer = skip_stack[skip_top] #alias for top of call stack
             while word_pointer < len(dict_entry["code"]):
                 instruction = dict_entry["code"][word_pointer]
                 execute(instruction)
-                word_pointer += 1
+                skip_stack[skip_top] += 1
+                word_pointer += skip_stack[skip_top]
+            
+            skip_top -= 1
 
         elif instruction["f"] != None:
             instruction["f"]()
         elif instruction["lit"] != None:
             integer_stack.append(instruction["lit"])
     
-    # skip_top -= 1
 
 def interpret(word): # return code, message
     code = None
@@ -611,6 +614,16 @@ def main(argv):
     add_dict_entry("/Mod", 0, [make_instruction(None, mod_primitive)]) #(5 3 - 2 1)
     add_dict_entry("branch", 0, [make_instruction(None, branch)])
     add_dict_entry("?branch", 0, [make_instruction(None, cond_branch)])
+
+    #testing, add precompiled word
+    add_dict_entry("is-zero", 0, [
+    {'ptr': 9, 'f': None, 'lit': None}, 
+    {'ptr': None, 'f': None, 'lit': 3}, 
+    {'ptr': 24, 'f': None, 'lit': None}, 
+    {'ptr': None, 'f': None, 'lit': 22}, 
+    {'ptr': None, 'f': None, 'lit': 3}, 
+    {'ptr': 23, 'f': None, 'lit': None}, 
+    {'ptr': None, 'f': None, 'lit': 33}])
     
 
     interpreter(inputfile, outputfile, table_name, split, separator)
