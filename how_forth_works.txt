@@ -70,4 +70,13 @@ IF and branching
     {'ptr': None, 'f': None, 'lit': 3}, 
     {'ptr': 23, 'f': None, 'lit': None}, 
     {'ptr': None, 'f': None, 'lit': 33}]}
+
+
+0= if
+    -> 0 : Non saltare l'if -> jump flag a False
+    -> 1 : Salta l'if
+
+5 5 == if
+    -> 5 5 : Non saltare l'if
+    -> 5 3 : Salta l'if
   

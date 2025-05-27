@@ -144,10 +144,12 @@ def ex_e():
     return ex_comparison(integer_stack, '==')
 
 def ex_eq_top():
+    global jump_flag
     #top of stack is equal to 0
     if len(integer_stack) > 0:
         num1 = integer_stack.pop()
-        integer_stack.append(1 if num1 == 0 else 0),
+        if num1 != 0:
+            jump_flag = True
         return 0
     return -1
 
@@ -261,6 +263,7 @@ def branch(): #always jump to the next value on top of stack
     #get the value to change from the stack, last pointed
     global skip_top
     global skip_stack
+    # global jump_flag
 
     
     if len(integer_stack) > 0:
@@ -270,14 +273,17 @@ def branch(): #always jump to the next value on top of stack
     return -1
 
 def cond_branch(): #if top of stack is 1, jump to the next value on top of stack
+    #this need a flag cause if the jump need to be done is managed by another function
     global skip_top
     global skip_stack
+    global jump_flag
 
-    if len(integer_stack) > 1:
+    if len(integer_stack) > 0:
         jump_len = integer_stack.pop()
-        cond = integer_stack.pop()
-        if cond == 1:
+        # cond = integer_stack.pop()
+        if jump_flag:
             skip_stack[skip_top - 1] += jump_len #i want to skip the prev stack execution
+            jump_flag = False
         return 0
     return -1
 
@@ -291,7 +297,7 @@ def seek(words, word, word_pointer = 0):
 
 def execute(instruction):
     #maybe i can use a local (on stack) skip counter
-    #we do not return an error here, so how do we fails
+    #TODO we do not return an error here, so how do we fails
     global skip_top
     global skip_stack
 
