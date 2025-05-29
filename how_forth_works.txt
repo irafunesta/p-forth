@@ -80,3 +80,13 @@ IF and branching
     -> 5 5 : Non saltare l'if
     -> 5 3 : Salta l'if
   
+{'link': 26, 'name': 'test-if', 'flags': 0, 'code': [
+    {'ptr': None, 'f': None, 'lit': 3}, 
+    {'ptr': 24, 'f': None, 'lit': None}, ?branch
+    {'ptr': None, 'f': None, 'lit': 22}]}
+
+{'link': 25, 'name': 'buzz', 'flags': 0, 'code': [
+    {'ptr': 9, 'f': None, 'lit': None}, 0=
+    {'ptr': None, 'f': None, 'lit': 3}, 3
+    {'ptr': 24, 'f': None, 'lit': None}, ?branch
+    {'ptr': None, 'f': None, 'lit': 5}]} 5

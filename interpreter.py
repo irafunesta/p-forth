@@ -376,13 +376,13 @@ def search_word(word): #return the link of a word that is present
     while link != None:
         dict_entry = linked_dict[link]
         # print(dict_entry)
-        if dict_entry["link"] == None: #dict_entry can't be None, but the link yes reached the end of the dictionary
-            return -1
+        # if dict_entry["link"] == None: #dict_entry can't be None, but the link yes reached the end of the dictionary
+        #     return -1
         if dict_entry["name"] == word:
             return link
         link = dict_entry["link"]
     
-    # return -1 #moved all the list and not foud
+    return -1 #moved all the list and not foud
 
 def isNumber(word):
     try: 
@@ -466,8 +466,10 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                         #seek to the else then -> [cond n ?branch]
                         relative_jump = seek(to_compile, "else", 0)
                         if relative_jump == -1:
-                            text_result = f"Error misisng else"
-                            break #this will be a good time where the label on the loops is good
+                            relative_jump = seek(to_compile, "then", 0)
+                            if relative_jump == -1:
+                                text_result = f"Error misisng else"
+                                break #this will be a good time where the label on the loops is good
                         compiled.append(make_instruction(None, None, relative_jump - i))
                         link = search_word("?branch")
                         compiled.append(make_instruction(link, None, None))
