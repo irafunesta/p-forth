@@ -16,6 +16,9 @@ compile_flag = False
 skip_stack = []
 skip_top = 0
 
+string_print_flag = False
+string_delimiter = '"'
+
 # isp = 0
 
 latest = None
@@ -33,6 +36,10 @@ entry_example = {
     "ptr" : None,
     "f": None
 }
+
+def enter_string_mode():
+    global string_print_flag
+    string_print_flag = True
 
 def enter_compilation():
     global compile_flag
@@ -398,6 +405,7 @@ def interpreter(filename, outputfile, table_name, split, separator) :
     # global word_pointer
     global skip_top
     global skip_stack
+    global string_print_flag
 
     for i in range(0, 100):
         skip_stack.append(0)
@@ -513,6 +521,16 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                 if isNumber(word):
                     number = int(word)
                     integer_stack.append(number)
+                elif string_print_flag:
+                    string = ""
+                    delimiter = word
+                    while delimiter != string_delimiter:
+                        string += delimiter + " "
+                        word_pointer +=1
+                        skip_stack[skip_top] += 1
+                        delimiter = words[word_pointer]
+                    print(string)
+                    string_print_flag = False
                 else:
                     code, text_result = interpret(word)
                     if code == -1:
@@ -622,6 +640,7 @@ def main(argv):
     add_dict_entry("/Mod", 0, [make_instruction(None, mod_primitive)]) #(5 3 - 2 1)
     add_dict_entry("branch", 0, [make_instruction(None, branch)])
     add_dict_entry("?branch", 0, [make_instruction(None, cond_branch)])
+    add_dict_entry('."', 0, [make_instruction(None, enter_string_mode)])
 
     #testing, add precompiled word
     add_dict_entry("is-zero", 0, [
