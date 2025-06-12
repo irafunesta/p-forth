@@ -305,6 +305,7 @@ def seek(words, word, word_pointer = 0):
 def execute(instruction):
     #maybe i can use a local (on stack) skip counter
     #TODO we do not return an error here, so how do we fails
+    # {'link': 26, 'name': 'buzz', 'flags': 0, 'code': [{'ptr': 25, 'f': None, 'lit': None, 'str': 'print buzz string '}]}
     global skip_top
     global skip_stack
 
@@ -331,6 +332,8 @@ def execute(instruction):
             instruction["f"]()
         elif instruction["lit"] != None:
             integer_stack.append(instruction["lit"])
+        elif instruction["str"] != None:
+            print(instruction["str"])
     
 
 def interpret(word): # return code, message
@@ -463,11 +466,17 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                     break
                 
                 compiled = []
-                for i, code in enumerate(to_compile[1:]) :
-                    # print("code:", code)
+
+                pt = 1
+                while pt < len(to_compile) :
+                    
+                    code = to_compile[pt]
+
                     link = None
                     func_call = None
                     lit = None
+                    str = ""
+
                     if isNumber(code):
                         lit = int(code)
                     elif code == "if":
@@ -494,16 +503,30 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                         continue
                     elif code == "then":
                         #skip
-                        link = 99
+                        link = 99 #TODO this may cause some problem
                         continue
                     else:
                         link = search_word(code)
-                        # print("code:", code, "link:", link)
+
                         if link == -1:
                             text_result = f"Error word not found"
                             break #this will be a good time where the label on the loops is good
+
+                        #read here the flags ? or understand what the word does eg. ."
+                        if code == '."': #TODO this is a hack, need to read something else of the word, or execute it
+                            link = None
+                            pt += 1
+                            delimiter = to_compile[pt]
+                            while delimiter != string_delimiter:
+                                str += delimiter + " "
+                                pt += 1
+                                if pt > len(to_compile):
+                                    text_result = f"Error misisng string delimiter"
+                                    break
+                                delimiter = to_compile[pt]
                     
-                    compiled.append(make_instruction(link, func_call, lit))
+                    compiled.append(make_instruction(link, func_call, lit, str))
+                    pt += 1
                 
                 if link == -1:
                     text_result = f"Error word {code} not found"
@@ -557,11 +580,12 @@ def add_dict_entry(name, flags, code):
     linked_dict.append(tmp)
     latest = len(linked_dict) - 1
 
-def make_instruction(link, func_call, lit = None):
+def make_instruction(link, func_call, lit = None, str = None):
     return {
         "ptr" : link,
         "f" : func_call,
-        "lit": lit
+        "lit": lit,
+        "str": str
     }
 
 def main(argv):
@@ -661,3 +685,10 @@ def main(argv):
 
 if __name__ == "__main__":
    main(sys.argv[1:])
+
+#TODO Strings
+# For the strings we need a better way, some code is duplicated
+# we are manually checking for the word ." , instead of using the flags or other methods, same for if else then
+# the delimiter for the string must be separated by a space, also need to check for the delimiter in words
+#   can i do something like ." ". just wondering
+# 
