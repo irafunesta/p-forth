@@ -16,6 +16,12 @@ compile_flag = False
 skip_stack = []
 skip_top = 0
 
+vars_stack = []
+vars_top = 0
+
+return_stack = []
+return_top = 0
+
 string_print_flag = False
 string_delimiter = '"'
 
@@ -294,6 +300,61 @@ def cond_branch(): #if top of stack is 1, jump to the next value on top of stack
         return 0
     return -1
 
+def ex_do():
+    global vars_stack
+    global vars_top
+    global return_stack
+
+    if len(integer_stack) > 1:
+        starting = integer_stack.pop() #0
+        end = integer_stack.pop() #10
+        # print("starting:",starting)
+        # print("end:", end)
+        # print("skip_stack[skip_top]:",skip_stack[skip_top-1]) #can use this to set the loop skipping ?
+
+        vars_stack[skip_top-1]["i"] = starting
+        vars_stack[skip_top-1]["count"] = end
+        return_stack[skip_top-1] = skip_stack[skip_top-1]
+
+        # no, cause i need to have the loop position
+        # but if we make the do, olny set variables for i, count and ip, then the loop word actually do the check and jump
+        return 0
+    return -1
+
+def ex_loop():
+    global vars_stack
+    global return_stack
+
+    current_i = vars_stack[skip_top-1]["i"] #0
+    end = vars_stack[skip_top-1]["count"]
+
+    # print("current_i:",current_i)
+    # print("end:", end)
+    # print("skip_stack[skip_top]:",skip_stack[skip_top-1])
+    # print("return_stak[skip_top]:",return_stack[skip_top-1])
+
+    current_i +=1
+    if current_i < end:
+        skip_stack[skip_top-1] = return_stack[skip_top-1] #jump back to the do word
+        vars_stack[skip_top-1]["i"] = current_i
+
+    return 0
+
+def ex_i():
+    global vars_stack
+    global return_stack
+
+    current_i = vars_stack[skip_top-1]["i"] #0
+   
+    # print("starting:",current_i)
+    # print("skip_stack[skip_top]:",skip_stack[skip_top-1])
+    # print("return_stak[skip_top]:",return_stack[skip_top-1])
+
+    integer_stack.append(current_i)
+
+    return 0  
+
+
 # ------------------------------------------- END WORDS ---------------------------------------------------
 
 def seek(words, word, word_pointer = 0):
@@ -308,6 +369,8 @@ def execute(instruction):
     # {'link': 26, 'name': 'buzz', 'flags': 0, 'code': [{'ptr': 25, 'f': None, 'lit': None, 'str': 'print buzz string '}]}
     global skip_top
     global skip_stack
+    global return_stack
+    global vars_stack
 
     if instruction != None:
         func_to_call = None
@@ -316,6 +379,8 @@ def execute(instruction):
 
             skip_top += 1
             skip_stack[skip_top] = 0
+            return_stack[skip_top] = 0
+            vars_stack[skip_top] = {}
 
             dict_entry = linked_dict[dict_index]
 
@@ -329,7 +394,7 @@ def execute(instruction):
             skip_top -= 1
 
         elif instruction["f"] != None:
-            instruction["f"]()
+            return instruction["f"]()
         elif instruction["lit"] != None:
             integer_stack.append(instruction["lit"])
         elif instruction["str"] != None:
@@ -342,9 +407,13 @@ def interpret(word): # return code, message
 
     global skip_top
     global skip_stack
+    global return_stack
+    global vars_stack
     
     skip_top += 1
     skip_stack[skip_top] = 0
+    return_stack[skip_top] = 0
+    vars_stack[skip_top] = {}
 
 
     while link != None:
@@ -409,9 +478,14 @@ def interpreter(filename, outputfile, table_name, split, separator) :
     global skip_top
     global skip_stack
     global string_print_flag
+    global return_stack
+    global vars_stack
 
     for i in range(0, 100):
         skip_stack.append(0)
+        return_stack.append(0)
+        vars_stack.append({})
+        
 
     now = datetime.datetime.now()
     format_date = now.strftime('%Y-%m-%d_%H-%M-%S')
@@ -443,6 +517,9 @@ def interpreter(filename, outputfile, table_name, split, separator) :
         
         skip_top = 0
         skip_stack[skip_top] = 0
+        return_stack[skip_top] = 0
+        vars_stack[skip_top] = {}
+
         word_pointer = skip_stack[skip_top]
 
         while word_pointer < len(words):
@@ -665,6 +742,11 @@ def main(argv):
     add_dict_entry("branch", 0, [make_instruction(None, branch)])
     add_dict_entry("?branch", 0, [make_instruction(None, cond_branch)])
     add_dict_entry('."', 0, [make_instruction(None, enter_string_mode)])
+    add_dict_entry('do', 0, [make_instruction(None, ex_do)])
+    add_dict_entry('loop', 0, [make_instruction(None, ex_loop)])
+    add_dict_entry('i', 0, [make_instruction(None, ex_i)])
+
+    
 
     #testing, add precompiled word
     add_dict_entry("is-zero", 0, [
