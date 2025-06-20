@@ -271,6 +271,17 @@ def mod_primitive():
         return 0
     return -1
 
+def ex_mod():
+    if len(integer_stack) > 1:
+        num1 = integer_stack.pop() #3
+        num2 = integer_stack.pop() #5
+        if num2 == 0:
+            return -1
+        quot_rem = num2 % num1
+        integer_stack.append(quot_rem)
+        return 0
+    return -1
+
 def branch(): #always jump to the next value on top of stack
 
     #get the value to change from the stack, last pointed
@@ -354,8 +365,58 @@ def ex_i():
 
     return 0  
 
+def ex_dup():
+    if len(integer_stack) > 0:
+        top_of_stack = integer_stack.pop() #0
+        integer_stack.append(top_of_stack) #0
+        integer_stack.append(top_of_stack) #0
+        return 0
+    return -1
+
+def ex_and():
+    if len(integer_stack) > 1:
+        num1 = integer_stack.pop() #0
+        num2 = integer_stack.pop() #0
+
+        bool_1 = convert_to_bool(num1)
+        bool_2 = convert_to_bool(num2)
+
+        res = 1 if bool_1 and bool_2 else 0
+
+        integer_stack.append(res) #0
+        return 0
+    return -1
+
+def ex_or():
+    if len(integer_stack) > 1:
+        num1 = integer_stack.pop() #0
+        num2 = integer_stack.pop() #0
+
+        bool_1 = convert_to_bool(num1)
+        bool_2 = convert_to_bool(num2)
+
+        integer_stack.append(convert_to_num(bool_1 or bool_2)) #0
+        return 0
+    return -1
+
+def ex_invert():
+    if len(integer_stack) > 0:
+        top_of_stack = integer_stack.pop() #0
+
+        bool_1 = convert_to_bool(top_of_stack)
+
+        integer_stack.append(convert_to_num(not bool_1)) #0
+        return 0
+    return -1
+
 
 # ------------------------------------------- END WORDS ---------------------------------------------------
+
+def convert_to_bool(num):
+    return True if num == 1 else False
+
+def convert_to_num(bool1):
+    return 1 if bool1 == True else 0
 
 def seek(words, word, word_pointer = 0):
     try:
@@ -507,7 +568,7 @@ def interpreter(filename, outputfile, table_name, split, separator) :
             continue
         
         words = input_code.strip().split(" ")
-        print(words)
+        # print(words)
 
         #execution one word at a time
         #can i just expand all the code and have it in a single list ?
@@ -567,6 +628,7 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                         compiled.append(make_instruction(None, None, relative_jump - i))
                         link = search_word("?branch")
                         compiled.append(make_instruction(link, None, None))
+                        pt += 1
                         continue
                     elif code == "else":
                         #seek to the then -> [n branch]
@@ -577,10 +639,12 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                         compiled.append(make_instruction(None, None, relative_jump - i))
                         link = search_word("branch")
                         compiled.append(make_instruction(link, None, None))
+                        pt += 1
                         continue
                     elif code == "then":
                         #skip
                         link = 99 #TODO this may cause some problem
+                        pt += 1
                         continue
                     else:
                         link = search_word(code)
@@ -615,9 +679,9 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                 text_result = "Ok"
                 break 
             else:
-                print("word_pointer:",word_pointer)
+                # print("word_pointer:",word_pointer)
                 word = words[word_pointer]
-                print("word:",word)
+                # print("word:",word)
                 if isNumber(word):
                     number = int(word)
                     integer_stack.append(number)
@@ -639,7 +703,7 @@ def interpreter(filename, outputfile, table_name, split, separator) :
             skip_stack[skip_top] += 1
             word_pointer = skip_stack[skip_top]
             
-            print("next word, pointer:", word_pointer)
+            # print("next word, pointer:", word_pointer)
         print(text_result)
         
     print(f'END ------------------------ ')
@@ -732,19 +796,24 @@ def main(argv):
     add_dict_entry("Over", 0, [make_instruction(None, over)])
     add_dict_entry("Rot", 0, [make_instruction(None, rot)])
     add_dict_entry("-Rot", 0, [make_instruction(None, rotl)])
+    add_dict_entry("dup", 0, [make_instruction(None, ex_dup)])
     add_dict_entry("1+", 0, [make_instruction(None, incl)])
     add_dict_entry("1-", 0, [make_instruction(None, decl)])
     add_dict_entry("4+", 0, [make_instruction(None, incl4)])
     add_dict_entry("4-", 0, [make_instruction(None, decl4)])
     add_dict_entry("-", 0, [make_instruction(None, subtract)])
     add_dict_entry("*", 0, [make_instruction(None, mul)])
-    add_dict_entry("/Mod", 0, [make_instruction(None, mod_primitive)]) #(5 3 - 2 1)
+    add_dict_entry("/Mod", 0, [make_instruction(None, mod_primitive)]) #(5 3 -- 2 1)
+    add_dict_entry("mod", 0, [make_instruction(None, ex_mod)]) #(5 3 -- 2)
     add_dict_entry("branch", 0, [make_instruction(None, branch)])
     add_dict_entry("?branch", 0, [make_instruction(None, cond_branch)])
     add_dict_entry('."', 0, [make_instruction(None, enter_string_mode)])
     add_dict_entry('do', 0, [make_instruction(None, ex_do)])
     add_dict_entry('loop', 0, [make_instruction(None, ex_loop)])
     add_dict_entry('i', 0, [make_instruction(None, ex_i)])
+    add_dict_entry('and', 0, [make_instruction(None, ex_and)])
+    add_dict_entry('or', 0, [make_instruction(None, ex_or)])
+    add_dict_entry('invert', 0, [make_instruction(None, ex_invert)])
 
     
 
@@ -757,6 +826,15 @@ def main(argv):
     {'ptr': None, 'f': None, 'lit': 3}, 
     {'ptr': 23, 'f': None, 'lit': None}, 
     {'ptr': None, 'f': None, 'lit': 33}])
+
+    #testing fizz-buzz #TODO this is not compile correctly
+    add_dict_entry("fizz?", 0, [
+    {'ptr': None, 'f': None, 'lit': 3, 'str': ''},
+    {'ptr': 24, 'f': None, 'lit': None, 'str': ''}, 
+    {'ptr': 9, 'f': None, 'lit': None, 'str': ''}, 
+    {'ptr': None, 'f': None, 'lit': -91, 'str': None}, 
+    {'ptr': 26, 'f': None, 'lit': None, 'str': None}, 
+    {'ptr': None, 'f': None, 'lit': None, 'str': 'Fizz '}])
     
 
     interpreter(inputfile, outputfile, table_name, split, separator)
