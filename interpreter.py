@@ -409,6 +409,20 @@ def ex_invert():
         return 0
     return -1
 
+def ex_word_search():
+    if len(integer_stack) > 0:
+        top_of_stack = integer_stack.pop() #0
+
+        dict_entry = linked_dict[top_of_stack]
+        
+        if dict_entry == None:
+            return -1
+
+        print(f"word:{dict_entry["name"]}")
+        print(f"code:{dict_entry["code"]}")
+        
+        return 0
+    return -1
 
 # ------------------------------------------- END WORDS ---------------------------------------------------
 
@@ -625,7 +639,7 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                             if relative_jump == -1:
                                 text_result = f"Error misisng else"
                                 break #this will be a good time where the label on the loops is good
-                        compiled.append(make_instruction(None, None, relative_jump - i))
+                        compiled.append(make_instruction(None, None, relative_jump - pt))
                         link = search_word("?branch")
                         compiled.append(make_instruction(link, None, None))
                         pt += 1
@@ -636,7 +650,7 @@ def interpreter(filename, outputfile, table_name, split, separator) :
                         if relative_jump == -1:
                             text_result = f"Error misisng then"
                             break #this will be a good time where the label on the loops is good
-                        compiled.append(make_instruction(None, None, relative_jump - i))
+                        compiled.append(make_instruction(None, None, relative_jump - pt))
                         link = search_word("branch")
                         compiled.append(make_instruction(link, None, None))
                         pt += 1
@@ -814,6 +828,7 @@ def main(argv):
     add_dict_entry('and', 0, [make_instruction(None, ex_and)])
     add_dict_entry('or', 0, [make_instruction(None, ex_or)])
     add_dict_entry('invert', 0, [make_instruction(None, ex_invert)])
+    add_dict_entry('w', 0, [make_instruction(None, ex_word_search)])
 
     
 

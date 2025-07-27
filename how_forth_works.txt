@@ -88,8 +88,17 @@ Testing loop
 loop-test
 
 Objective 
-: fizz?  3 mod 0 = dup if ." Fizz" then ;
-: buzz?  5 mod 0 = dup if ." Buzz" then ;
+: fizz?  3 mod 0 = dup if ." Fizz " then ;
+: buzz?  5 mod 0 = dup if ." Buzz " then ;
 : fizz-buzz?  dup fizz? swap buzz? or invert ;
 : do-fizz-buzz  25 1 do cr i fizz-buzz? if i . then loop ;
 do-fizz-buzz
+
+{'link': 35, 'name': 'fizz?', 'flags': 0, 'code': [
+    {'ptr': None, 'f': None, 'lit': 3, 'str': ''}, -> 3
+    {'ptr': 24, 'f': None, 'lit': None, 'str': ''}, -> mod
+    {'ptr': 9, 'f': None, 'lit': None, 'str': ''}, -> 0=
+    {'ptr': 16, 'f': None, 'lit': None, 'str': ''}, -> dup
+    {'ptr': None, 'f': None, 'lit': 4, 'str': None}, -> 4
+    {'ptr': 26, 'f': None, 'lit': None, 'str': None}, -> ?branch
+    {'ptr': None, 'f': None, 'lit': None, 'str': 'Fizz '}]} -> str Fizz
